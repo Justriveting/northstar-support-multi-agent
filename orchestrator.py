@@ -65,7 +65,27 @@ def route_request(state):
 
     return state
         
+def send_to_specialist(state):
+    """
+    Placeholder for sending the request to the routed specialist agent.
+    The real specialist agent functions will be connected later.
+    """
 
+    route = state["route"]
+
+    if route == "dental":
+        state["specialist_output"] = "Placeholder response from Dental Agent."
+
+    elif route == "billing":
+        state["specialist_output"] = "Placeholder response from Billing Agent."
+
+    elif route == "benefits_coverage":
+        state["specialist_output"] = "Placeholder response from Benefits Coverage Agent."
+
+    elif route == "human_review":
+        state["specialist_output"] = None
+
+    return state
 
 
 
@@ -74,6 +94,8 @@ if __name__ == "__main__":
 
     state = create_state(question)
     state = route_request(state)
+    state = send_to_specialist(state)
 
     print("\nOrchestrator Result:")
     print(state)
+    
