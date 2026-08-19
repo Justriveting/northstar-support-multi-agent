@@ -22,17 +22,17 @@ Current possible routes:
 
 Do not make up health plan information.
 If a request cannot be safely routed or answered using available
-policy information, route it for human review.
+policy information, category it for human review.
 """
 
-def create_state(user_question):
+def create_state(ticket):
     """
     Create the shared state that follows a support request
     through the multi-agent workflow.
     """
     return {
-        "user_question": user_question,
-        "route": None,
+        "ticket": ticket,
+        "category": None,
         "specialist_output": None,
         "critic_status": None,
         "critic_feedback": None,
@@ -41,26 +41,26 @@ def create_state(user_question):
         "final_response": None
     }
 
-def route_request(state):
+def category_request(state):
     """
     Temporary routing logic for the Orchestrator.
     This will later be replaced with LLM-based routing
     using the final prompt from the Prompt Engineer.
     """
 
-    question = state["user_question"].lower()
+    ticket = state["ticket"].lower()
 
-    if "dental" in question or "dentist" in question:
-        state["route"] = "dental"
+    if "dental" in ticket or "dentist" in ticket:
+        state["category"] = "dental"
 
-    elif "bill" in question or "claim" in question or "deductible" in question:
-        state["route"] = "billing"
+    elif "bill" in ticket or "claim" in ticket or "deductible" in ticket:
+        state["category"] = "billing"
 
-    elif "coverage" in question or "eligible" in question or "doctor" in question:
-        state["route"] = "benefits_coverage"
+    elif "coverage" in ticket or "eligible" in ticket or "doctor" in ticket:
+        state["category"] = "benefits_coverage"
 
     else:
-        state["route"] = "human_review"
+        state["category"] = "human_review"
         state["human_review"] = True
 
     return state
@@ -71,18 +71,18 @@ def send_to_specialist(state):
     The real specialist agent functions will be connected later.
     """
 
-    route = state["route"]
+    category = state["category"]
 
-    if route == "dental":
+    if category == "dental":
         state["specialist_output"] = "Placeholder response from Dental Agent."
 
-    elif route == "billing":
+    elif category == "billing":
         state["specialist_output"] = "Placeholder response from Billing Agent."
 
-    elif route == "benefits_coverage":
+    elif category == "benefits_coverage":
         state["specialist_output"] = "Placeholder response from Benefits Coverage Agent."
 
-    elif route == "human_review":
+    elif category == "human_review":
         state["specialist_output"] = None
 
     return state
@@ -90,10 +90,10 @@ def send_to_specialist(state):
 
 
 if __name__ == "__main__":
-    question = input("Enter an employee benefits question: ")
+    ticket = input("Enter an employee benefits question: ")
 
-    state = create_state(question)
-    state = route_request(state)
+    state = create_state(ticket)
+    state = category_request(state)
     state = send_to_specialist(state)
 
     print("\nOrchestrator Result:")
