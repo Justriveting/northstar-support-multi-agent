@@ -1,21 +1,9 @@
-"""
-====================================================================
-Northstar Support Co. - Prompt Engineering Deliverables
-Role: Prompt Engineer
-====================================================================
-This module defines the system prompts, tool docstrings, and agent 
-initializations for the multi-agent TPA support system using LangChain's 
-`create_agent` pattern.
-"""
-
 from langchain.agents import create_agent
 from langchain.tools import tool
 from config import llm
 
 
-# ==================================================================
-# 1. SPECIALIST SYSTEM PROMPTS
-# ==================================================================
+# 1. SPECIALIST SYSTEM PROMPTS AND RULES TO FOLLOW
 
 SPECIALIST_BILLING_PROMPT = """You are a TPA Billing & Claims Specialist. Answer the employee's billing question using ONLY the provided context.
 
@@ -41,9 +29,7 @@ Rules:
 3. If the context lacks necessary information, reply strictly with: "INSUFFICIENT_CONTEXT" """
 
 
-# ==================================================================
-# 2. CRITIC & SYNTHESIZER SYSTEM PROMPTS
-# ==================================================================
+# CRITIC & SYNTHESIZER SYSTEM PROMPTS
 
 CRITIC_PROMPT = """You are a TPA Compliance & Quality Audit Critic evaluating an AI Specialist's draft output.
 
@@ -65,9 +51,7 @@ Format the approved specialist response into a clear, empathetic, and profession
 Remove internal process labels, database IDs, or system jargon."""
 
 
-# ==================================================================
-# 3. ROUTER / ORCHESTRATOR SYSTEM PROMPT
-# ==================================================================
+# ROUTER / ORCHESTRATOR SYSTEM PROMPT
 
 ROUTER_PROMPT = """You are an expert TPA Benefits Query Router.
 Analyze the employee's input question and classify the primary intent into one or more categories:
@@ -82,9 +66,7 @@ Output strictly valid JSON:
 }"""
 
 
-# ==================================================================
-# 4. AGENT INITIALIZATION
-# ==================================================================
+# AGENT INITIALIZATION
 
 billing_agent = create_agent(
     model=llm,
@@ -112,13 +94,8 @@ synthesizer_agent = create_agent(
 )
 
 
-# ==================================================================
-# 5. SPECIALIST TOOLS & ROUTER WRAPPERS
-# ==================================================================
 
-# ==================================================================
-# SPECIALIST TOOLS (Updated with "specialist" naming)
-# ==================================================================
+# SPECIALIST TOOLS
 
 @tool
 def ask_billing_specialist(question: str) -> str:
