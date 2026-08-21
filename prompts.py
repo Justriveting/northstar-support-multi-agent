@@ -45,7 +45,7 @@ Output strictly valid JSON:
   "critic_feedback": "Specific instructions if RETRY, or empty string if PASS"
 }"""
 
-
+# TODO: Combine this with the Orchestrator prompt
 SYNTHESIZER_PROMPT = """You are the primary TPA Customer Support Assistant.
 Format the approved specialist response into a clear, empathetic, and professional message for the employee.
 Remove internal process labels, database IDs, or system jargon."""
@@ -65,78 +65,3 @@ Output strictly valid JSON:
   "reasoning": "Brief justification for classification"
 }"""
 
-
-# AGENT INITIALIZATION
-
-billing_agent = create_agent(
-    model=llm,
-    system_prompt=SPECIALIST_BILLING_PROMPT
-)
-
-dental_agent = create_agent(
-    model=llm,
-    system_prompt=SPECIALIST_DENTAL_PROMPT
-)
-
-benefits_agent = create_agent(
-    model=llm,
-    system_prompt=SPECIALIST_BENEFITS_PROMPT
-)
-
-critic_agent = create_agent(
-    model=llm,
-    system_prompt=CRITIC_PROMPT
-)
-
-synthesizer_agent = create_agent(
-    model=llm,
-    system_prompt=SYNTHESIZER_PROMPT
-)
-
-
-
-# SPECIALIST TOOLS
-
-@tool
-def ask_billing_specialist(question: str) -> str:
-    """Ask the billing specialist about claims, out-of-pocket costs, deductibles, coinsurance, and reimbursements."""
-    print(f"[orchestrator] -> billing_specialist: {question}")
-    result = billing_agent.invoke({"messages": [{"role": "user", "content": question}]})
-    return result["messages"][-1].content
-
-
-@tool
-def ask_dental_specialist(question: str) -> str:
-    """Ask the dental specialist about cleanings, fillings, orthodontia, and dental networks."""
-    print(f"[orchestrator] -> dental_specialist: {question}")
-    result = dental_agent.invoke({"messages": [{"role": "user", "content": question}]})
-    return result["messages"][-1].content
-
-
-@tool
-def ask_benefits_specialist(question: str) -> str:
-    """Ask the benefits specialist about copays, preventive care, coverage eligibility, and physicals."""
-    print(f"[orchestrator] -> benefits_specialist: {question}")
-    result = benefits_agent.invoke({"messages": [{"role": "user", "content": question}]})
-    return result["messages"][-1].content
-
-
-@tool
-def review_draft_response(draft_data: str) -> str:
-    """Audit a specialist draft response for compliance, safety, and factual accuracy."""
-    print(f"[orchestrator] -> critic_reviewer: {draft_data}")
-    result = critic_agent.invoke({"messages": [{"role": "user", "content": draft_data}]})
-    return result["messages"][-1].content
-
-
-# Final Router / Orchestrator Agent
-router_agent = create_agent(
-    model=llm,
-    tools=[
-        ask_billing_specialist, 
-        ask_dental_specialist, 
-        ask_benefits_specialist, 
-        review_draft_response
-    ],
-    system_prompt=ROUTER_PROMPT
-)

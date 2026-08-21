@@ -1,6 +1,11 @@
 # Northstar Support Co. - Orchestrator Agent
 # Temporary prompt until the Prompt Engineer provides the final version.
 
+from langchain.agent import create_agent
+from prompts import ROUTER_PROMPT
+
+# TODO: Tayo, determine which prompt you want to use OR combine both prompts to one better prompt. 
+# Make sure to put the final prompt in the prompts.py file
 ORCHESTRATOR_PROMPT = """
 You are the Orchestrator Agent for Northstar Support Co.,
 a health benefits support service.
@@ -87,7 +92,17 @@ def send_to_specialist(state):
 
     return state
 
-
+# Final Router / Orchestrator Agent
+router_agent = create_agent(
+    model=llm,
+    tools=[
+        ask_billing_specialist, 
+        ask_dental_specialist, 
+        ask_benefits_specialist, 
+        review_draft_response
+    ],
+    system_prompt=ROUTER_PROMPT
+)
 
 if __name__ == "__main__":
     ticket = input("Enter an employee benefits question: ")
