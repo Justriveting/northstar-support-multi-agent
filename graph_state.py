@@ -18,7 +18,7 @@ def create_shared_state(ticket: str) -> SupportState:
         "ticket": ticket,
         "category": None,
         "policy": None,
-        "draft_output": None,
+        "specialist_output": None,
         "critic_status": None,
         "critic_feedback": None,
         "retry_count": 0,
