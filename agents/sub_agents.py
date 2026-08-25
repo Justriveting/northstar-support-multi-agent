@@ -1,5 +1,12 @@
 from langchain.agents import create_agent
-from prompts import SPECIALIST_BENEFITS_PROMPT, SPECIALIST_BILLING_PROMPT, SPECIALIST_DENTAL_PROMPT, CRITIC_PROMPT
+from config import llm
+from prompts import (
+    SPECIALIST_BILLING_PROMPT,
+    SPECIALIST_DENTAL_PROMPT,
+    SPECIALIST_BENEFITS_PROMPT,
+    CRITIC_PROMPT,
+)
+
 # AGENT INITIALIZATION
 
 billing_agent = create_agent(

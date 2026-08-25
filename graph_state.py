@@ -5,7 +5,7 @@ class SupportState(TypedDict):
     ticket: str
     category: Optional[str]
     policy: Optional[str]
-    draft_output: Optional[str]
+    specialist_output: Optional[str]
     critic_status: Optional[str]
     critic_feedback: Optional[str]
     retry_count: int

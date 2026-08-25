@@ -1,8 +1,16 @@
 # Northstar Support Co. - Orchestrator Agent
 # Temporary prompt until the Prompt Engineer provides the final version.
 
-from langchain.agent import create_agent
+from langchain.agents import create_agent
 from prompts import ROUTER_PROMPT
+from graph_state import create_shared_state
+from config import llm
+from tools.specialists import (
+    ask_billing_specialist,
+    ask_dental_specialist,
+    ask_benefits_specialist,
+    review_draft_response,
+) 
 
 # TODO: Tayo, determine which prompt you want to use OR combine both prompts to one better prompt. 
 # Make sure to put the final prompt in the prompts.py file
@@ -30,21 +38,8 @@ If a request cannot be safely routed or answered using available
 policy information, category it for human review.
 """
 
-def create_state(ticket):
-    """
-    Create the shared state that follows a support request
-    through the multi-agent workflow.
-    """
-    return {
-        "ticket": ticket,
-        "category": None,
-        "specialist_output": None,
-        "critic_status": None,
-        "critic_feedback": None,
-        "retry_count": 0,
-        "human_review": False,
-        "final_response": None
-    }
+
+       
 
 def category_request(state):
     """
@@ -104,13 +99,3 @@ router_agent = create_agent(
     system_prompt=ROUTER_PROMPT
 )
 
-if __name__ == "__main__":
-    ticket = input("Enter an employee benefits question: ")
-
-    state = create_state(ticket)
-    state = category_request(state)
-    state = send_to_specialist(state)
-
-    print("\nOrchestrator Result:")
-    print(state)
-    
