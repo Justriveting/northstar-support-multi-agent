@@ -8,6 +8,6 @@ llm = ChatDeepSeek(
     model="deepseek-v4-flash",
 )
 
-response = llm.invoke("Hello! Say 'DeepSeek is connected.'")
-
-print(response.content)
+if __name__ == "__main__":
+    response = llm.invoke("Hello! Say 'DeepSeek is connected.'")
+    print(response.content)

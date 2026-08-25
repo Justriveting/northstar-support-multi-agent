@@ -1,3 +1,6 @@
+from langchain.tools import tool
+from agents.sub_agents import billing_agent, dental_agent, benefits_agent, critic_agent
+
 # SPECIALIST TOOLS
 
 @tool
