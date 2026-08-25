@@ -66,35 +66,106 @@ def category_request(state):
     return state
         
 def send_to_specialist(state):
-    """
-    Placeholder for sending the request to the routed specialist agent.
-    The real specialist agent functions will be connected later.
-    """
+    """Send the ticket to the specialist selected by the orchestrator."""
 
     category = state["category"]
+    ticket = state["ticket"]
 
     if category == "dental":
-        state["specialist_output"] = "Placeholder response from Dental Agent."
+        state["specialist_output"] = ask_dental_specialist.invoke(
+            {"question": ticket}
+        )
 
     elif category == "billing":
-        state["specialist_output"] = "Placeholder response from Billing Agent."
+        state["specialist_output"] = ask_billing_specialist.invoke(
+            {"question": ticket}
+        )
 
     elif category == "benefits_coverage":
-        state["specialist_output"] = "Placeholder response from Benefits Coverage Agent."
+        state["specialist_output"] = ask_benefits_specialist.invoke(
+            {"question": ticket}
+        )
 
     elif category == "human_review":
         state["specialist_output"] = None
+        state["human_review"] = True
 
     return state
+def review_specialist_output(state):
+    """Send the specialist response to the critic for review."""
 
+    if state.get("human_review"):
+        return state
+
+    specialist_output = state.get("specialist_output")
+
+    if not specialist_output:
+        state["critic_status"] = "RETRY"
+        state["critic_feedback"] = "No specialist response was produced."
+        return state
+
+    critic_result = review_draft_response.invoke(
+        {"draft_data": specialist_output}
+    )
+    state["critic_feedback"] = critic_result
+
+    # Capture the critic's decision in shared state
+    critic_text = str(critic_result)
+
+    if '"decision": "APPROVE"' in critic_text:
+        state["critic_status"] = "APPROVE"
+
+    elif '"decision": "RETRY"' in critic_text:
+        state["critic_status"] = "RETRY"
+
+    elif '"decision": "ESCALATE"' in critic_text:
+        state["critic_status"] = "ESCALATE"
+        state["human_review"] = True
+
+    else:
+        state["critic_status"] = "UNKNOWN"
+
+    return state
+def handle_critic_decision(state):
+    """
+    Handle the critic's decision after reviewing a specialist response.
+    """
+
+    decision = state.get("critic_status")
+
+    if decision == "APPROVE":
+        state["final_response"] = state.get("specialist_output")
+        state["human_review"] = False
+
+    elif decision == "RETRY":
+        state["retry_count"] += 1
+
+        if state["retry_count"] >= 2:
+            state["critic_status"] = "ESCALATE"
+            state["human_review"] = True
+        else:
+            state = send_to_specialist(state)
+            state = review_specialist_output(state)
+
+            if state.get("critic_status") != "APPROVE":
+                state["critic_status"] = "ESCALATE"
+                state["human_review"] = True
+            else:
+                state["final_response"] = state.get("specialist_output")
+
+    elif decision == "ESCALATE":
+        state["human_review"] = True
+
+    else:
+        state["critic_status"] = "ESCALATE"
+        state["human_review"] = True
+
+    return state
+     
 # Final Router / Orchestrator Agent
 router_agent = create_agent(
     model=llm,
     tools=[
-        ask_billing_specialist, 
-        ask_dental_specialist, 
-        ask_benefits_specialist, 
-        review_draft_response
     ],
     system_prompt=ROUTER_PROMPT
 )
