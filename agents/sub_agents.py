@@ -1,10 +1,21 @@
-import json
+from typing import Literal
 
 from langchain.agents import create_agent
+from pydantic import BaseModel
+
 from config import llm
 from graph_state import SupportState
 from logger import log_exchange
 from prompts import SPECIALIST_BENEFITS_PROMPT, SPECIALIST_BILLING_PROMPT, SPECIALIST_DENTAL_PROMPT, CRITIC_PROMPT
+
+
+class CriticVerdict(BaseModel):
+    decision: Literal["PASS", "RETRY", "ESCALATE"]
+    reasoning: str
+    critic_feedback: str = ""
+
+
+critic_llm = llm.with_structured_output(CriticVerdict, method="json_mode")
 # AGENT INITIALIZATION
 
 billing_agent = create_agent(
@@ -141,15 +152,17 @@ def critic_node(state: SupportState) -> dict:
 
     log_exchange(ticket_id, "critic", "input", {"audit_input": audit_input})
 
-    result = critic_agent.invoke({"messages": [{"role": "user", "content": audit_input}]})
-    audit = json.loads(result["messages"][-1].content)
+    verdict = critic_llm.invoke([
+        {"role": "system", "content": CRITIC_PROMPT},
+        {"role": "user", "content": audit_input},
+    ])
 
     updates = {
-        "critic_status": audit["decision"],
-        "critic_feedback": audit["critic_feedback"],
+        "critic_status": verdict.decision,
+        "critic_feedback": verdict.critic_feedback or verdict.reasoning,
     }
 
-    if audit["decision"] == "RETRY":
+    if verdict.decision == "RETRY":
         updates["retry_count"] = state["retry_count"] + 1
 
     log_exchange(ticket_id, "critic", "decision", {
