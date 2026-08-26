@@ -1,7 +1,120 @@
-# northstar-support-multi-agent
+# 🧠 Northstar Support — Multi-Agent Customer Support System
 
-Multi-agent customer support ticket triage system for Northstar Support Co.
-(a TPA / employee-benefits support desk).
+## 📌 Project Overview
+
+Northstar Support is a multi-agent AI customer support ticket triage system developed as a **Phase 2 Technical Employment Preparation Project (TEPP)** through The Knowledge House AI Business Solutions Innovation Fellowship.
+
+The system demonstrates how specialized AI agents can work together to classify customer support requests, generate responses grounded in plan policy, evaluate response quality, and escalate appropriate cases for human review.
+
+## 💼 Business Problem
+
+Traditional customer support workflows often require employees to manually review, categorize, route, and respond to incoming tickets. This can increase response times and create inconsistent handling across support teams.
+
+Northstar explores how a multi-agent AI workflow can automate portions of the support process while maintaining quality controls and human oversight.
+
+## 💡 Solution
+
+Northstar uses specialized agents rather than relying on a single AI model to handle the entire customer support process.
+
+A customer ticket moves through an orchestrated workflow where the system:
+
+1. Receives the customer support ticket.
+2. Routes the ticket to the appropriate specialist.
+3. Drafts a response grounded in the relevant policy information.
+4. Sends the response to a Critic Agent for evaluation.
+5. Retries the specialist workflow when revision is required, with the critic's specific feedback attached.
+6. Escalates appropriate cases to Human Review.
+
+## 🔄 Multi-Agent Workflow
+
+```text
+Customer Ticket
+      |
+    Router
+      |
+Specialist Agent
+      |
+    Critic
+   /       \
+RETRY      PASS
+  |          |
+Specialist   Final Response
+
+ESCALATE -> Human Review
+```
+
+The workflow is designed to maintain human oversight while allowing routine support requests to move through an automated AI-assisted process. See "How a ticket flows through the graph" below for the exact, code-accurate version of this diagram.
+
+## 🤖 Specialist Routing
+
+The system routes tickets into support categories including:
+
+* Billing
+* Dental
+* Benefits Coverage
+* Human Review
+
+Requests requiring additional judgment or falling outside the automated workflow can be escalated for human review.
+
+## 🧠 Shared State & Orchestration
+
+The agents communicate through a shared workflow state. See `graph_state.py`'s `SupportState` (documented in the technical section below) for the exact, current field list.
+
+The orchestration layer controls how the ticket moves between the Router, Specialist Agents, and Critic, with Human Review as the fallback path.
+
+## 🛡️ Human-in-the-Loop Design
+
+Human oversight is an intentional part of the architecture.
+
+Cases that cannot be handled confidently by the automated workflow can be escalated rather than forcing the system to generate an unsupported response.
+
+This approach combines AI automation with human judgment for higher-risk or uncertain requests.
+
+## 🛠️ Technologies
+
+* Python
+* Large Language Models (LLMs)
+* Multi-Agent AI
+* LangChain / LangGraph (StateGraph)
+* Streamlit
+* Prompt Engineering
+* Git
+* GitHub
+
+## 🤝 Team Contributions
+
+Northstar was developed collaboratively by a four-person team, with each member responsible for a core component of the multi-agent system.
+| Team Member | Role | Primary Contribution |
+| --- | --- | --- |
+| **Tayo Arogundade** | Orchestrator Engineer / Project Lead | Orchestration, routing logic, shared-state/workflow coordination, testing, integration alignment, and project coordination |
+| **Kay Richardson** | Prompt Engineer | Prompt design and development for the AI agent workflow |
+| **Lucy Edosomwan** | Critic / QA Engineer | Critic-agent development, response evaluation, quality assurance, and workflow testing |
+| **Drequan Walker** | Integration Engineer | Built and tested the LangGraph pipeline end-to-end (orchestrator, specialist, and critic nodes; conditional routing and retry logic), the Streamlit frontend, the audit-trail logging system, and the policy lookup; found and fixed several correctness bugs (critic groundedness, a JSON-parsing crash, a retry-cap mismatch) through direct testing |
+
+
+
+## 🚀 Key Skills Demonstrated
+
+* AI Agent Orchestration
+* Multi-Agent Systems
+* Large Language Model Applications
+* Prompt Engineering
+* Python
+* Workflow Design
+* Human-in-the-Loop AI
+* Business Process Automation
+* Git & GitHub
+* Cross-Functional Collaboration
+* AI Solution Design
+
+## 🎓 Project Context
+
+The Knowledge House — AI Business Solutions Innovation Fellowship
+Phase 2 TEPP Project — 2026
+
+Northstar was developed to demonstrate the practical application of multi-agent AI architecture, workflow orchestration, quality control, collaborative development, and human-in-the-loop AI design.
+
+---
 
 ## What it does
 
@@ -97,6 +210,10 @@ measure_approval_rate.py     # runs a batch of test tickets through the graph an
   inconsistently let a bare `INSUFFICIENT_CONTEXT` specialist signal reach
   an employee as if it were a real answer. Now guarded deterministically —
   one coached retry first, then automatic escalation if still unanswerable.
+- A second real bug found via a teammate's fresh install/test and fixed:
+  the critic's structured-output parsing could throw an uncaught exception
+  on malformed JSON from the model, crashing the whole request instead of
+  failing safe. Now caught and escalated instead of crashing.
 
 ## Current status
 
