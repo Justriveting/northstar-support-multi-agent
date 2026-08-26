@@ -6,7 +6,7 @@ CATEGORY_TO_NODE = {
     "benefits_coverage": "benefits",
 }
 
-MAX_RETRIES = 2
+MAX_RETRIES = 3
 
 
 def route_after_orchestrator(state: SupportState) -> str:

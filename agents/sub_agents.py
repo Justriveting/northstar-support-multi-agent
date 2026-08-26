@@ -101,6 +101,21 @@ def critic_node(state: SupportState) -> dict:
     policy = state.get("policy") or "(none provided)"
     draft = state["specialist_output"]
 
+    # Deterministic guard: never let the raw INSUFFICIENT_CONTEXT sentinel
+    # reach the employee. Escalate immediately instead of leaving it up to
+    # the critic LLM's judgment -- observed to inconsistently PASS this
+    # instead of catching it (see measure_approval_rate.py ticket 1d865ac3).
+    if draft and draft.strip() == "INSUFFICIENT_CONTEXT":
+        updates = {
+            "critic_status": "ESCALATE",
+            "critic_feedback": "Specialist could not answer from the available policy context.",
+        }
+        log_exchange(ticket_id, "critic", "decision", {
+            **updates,
+            "retry_count": state["retry_count"],
+        })
+        return updates
+
     audit_input = (
         f"Employee question: {question}\n\n"
         f"Policy context: {policy}\n\n"
