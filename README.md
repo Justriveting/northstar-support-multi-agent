@@ -106,6 +106,14 @@ trail, and the Streamlit frontend are all built, tested, and merged into
 the retry cap and the auto-approval-rate claim are both now backed by
 actual measured behavior, not assumptions.
 
+## Team Contributions
+
+| Team Member | Role | Key Contributions |
+|---|---|---|
+| Tayo Arogundade | Orchestrator Engineer / Project Coordination | Developed and tested orchestrator routing logic, helped define the shared-state workflow and agent handoffs, coordinated team integration, validated end-to-end routing and human-review escalation, and contributed business framing and project documentation. |
+| Drequan | Integration Engineer | Built and integrated the LangGraph workflow, retry and critic logic, Streamlit interface, audit trail, and testing/measurement utilities; identified and resolved integration issues during end-to-end testing. |
+| Kay | Prompt Engineer | Developed and refined prompts used by the multi-agent workflow, including routing and specialist-agent behavior. |
+| Lucy | Critic / QA Engineer | Contributed critic/quality-review work and supported validation of agent responses and workflow behavior. |
 ## Technical Notes and Future Improvements
 
 - **Critic implementation:** `agents/critic.py` is retained as an earlier alternate critic implementation. The active critic logic used by the LangGraph workflow is implemented in `agents/sub_agents.py`.
