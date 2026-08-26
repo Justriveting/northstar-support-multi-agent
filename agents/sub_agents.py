@@ -1,6 +1,7 @@
 from typing import Literal
 
 from langchain.agents import create_agent
+from langchain_core.exceptions import OutputParserException
 from pydantic import BaseModel
 
 from config import llm
@@ -152,10 +153,26 @@ def critic_node(state: SupportState) -> dict:
 
     log_exchange(ticket_id, "critic", "input", {"audit_input": audit_input})
 
-    verdict = critic_llm.invoke([
-        {"role": "system", "content": CRITIC_PROMPT},
-        {"role": "user", "content": audit_input},
-    ])
+    # DeepSeek's json_mode doesn't always return clean, parseable JSON --
+    # never let a parsing hiccup crash the request. Fail safe: escalate to
+    # a human instead, and log the raw parse error so it's still visible.
+    try:
+        verdict = critic_llm.invoke([
+            {"role": "system", "content": CRITIC_PROMPT},
+            {"role": "user", "content": audit_input},
+        ])
+    except OutputParserException as e:
+        updates = {
+            "critic_status": "ESCALATE",
+            "critic_feedback": "Critic response could not be parsed as valid JSON; escalating for safety.",
+        }
+        log_exchange(ticket_id, "critic", "decision", {
+            "critic_status": updates["critic_status"],
+            "critic_feedback": updates["critic_feedback"],
+            "retry_count": state["retry_count"],
+            "parse_error": str(e),
+        })
+        return updates
 
     updates = {
         "critic_status": verdict.decision,
