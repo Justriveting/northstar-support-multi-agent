@@ -1,5 +1,14 @@
-# SPECIALIST TOOLS
+from langchain.tools import tool
+from agents.sub_agents import billing_agent, dental_agent, benefits_agent, critic_agent
 
+# SPECIALIST TOOLS
+from langchain_core.tools import tool
+from agents.sub_agents import (
+    billing_agent,
+    dental_agent,
+    benefits_agent,
+    critic_agent,
+)
 @tool
 def ask_billing_specialist(question: str) -> str:
     """Ask the billing specialist about claims, out-of-pocket costs, deductibles, coinsurance, and reimbursements."""

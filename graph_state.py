@@ -1,11 +1,19 @@
 from typing import Optional, TypedDict
 
 
+class Ticket(TypedDict):
+    id: Optional[str]
+    customer_name: str
+    question: str
+    additional_info: str
+    status: str
+
+
 class SupportState(TypedDict):
-    ticket: str
+    ticket: Ticket
     category: Optional[str]
     policy: Optional[str]
-    draft_output: Optional[str]
+    specialist_output: Optional[str]
     critic_status: Optional[str]
     critic_feedback: Optional[str]
     retry_count: int
@@ -13,12 +21,12 @@ class SupportState(TypedDict):
     final_response: Optional[str]
 
 
-def create_shared_state(ticket: str) -> SupportState:
+def create_shared_state(ticket: Ticket) -> SupportState:
     return {
         "ticket": ticket,
         "category": None,
         "policy": None,
-        "draft_output": None,
+        "specialist_output": None,
         "critic_status": None,
         "critic_feedback": None,
         "retry_count": 0,

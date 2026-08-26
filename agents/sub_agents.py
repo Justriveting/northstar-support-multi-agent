@@ -1,5 +1,22 @@
+from typing import Literal
+
 from langchain.agents import create_agent
+from langchain_core.exceptions import OutputParserException
+from pydantic import BaseModel
+
+from config import llm
+from graph_state import SupportState
+from logger import log_exchange
 from prompts import SPECIALIST_BENEFITS_PROMPT, SPECIALIST_BILLING_PROMPT, SPECIALIST_DENTAL_PROMPT, CRITIC_PROMPT
+
+
+class CriticVerdict(BaseModel):
+    decision: Literal["PASS", "RETRY", "ESCALATE"]
+    reasoning: str
+    critic_feedback: str = ""
+
+
+critic_llm = llm.with_structured_output(CriticVerdict, method="json_mode")
 # AGENT INITIALIZATION
 
 billing_agent = create_agent(
@@ -21,3 +38,154 @@ critic_agent = create_agent(
     model=llm,
     system_prompt=CRITIC_PROMPT
 )
+
+
+# LANGGRAPH NODE WRAPPERS
+
+def _build_specialist_message(state: SupportState) -> str:
+    """
+    Builds the message sent to a specialist agent: the question, plus
+    policy context if available, plus the critic's feedback if this is
+    a retry -- so a retry can actually correct the previous mistake
+    instead of just re-asking the same thing and getting the same answer.
+    """
+    question = state["ticket"]["question"]
+    policy = state.get("policy")
+
+    message = f"Employee question: {question}"
+
+    if policy:
+        message += f"\n\nPolicy context: {policy}"
+
+    if state.get("critic_feedback") and state.get("retry_count", 0) > 0:
+        message += (
+            f"\n\n[Revision needed] Your previous answer was rejected by the "
+            f"compliance reviewer for this reason: {state['critic_feedback']} "
+            f"Please produce a corrected answer."
+        )
+
+    return message
+
+
+def billing_node(state: SupportState) -> dict:
+    """LangGraph node: gets a draft response from the billing specialist."""
+    ticket_id = state["ticket"]["id"]
+    message = _build_specialist_message(state)
+
+    log_exchange(ticket_id, "billing_specialist", "input", {"message": message})
+    result = billing_agent.invoke({"messages": [{"role": "user", "content": message}]})
+    output = result["messages"][-1].content
+    log_exchange(ticket_id, "billing_specialist", "output", {"answer": output})
+
+    return {"specialist_output": output}
+
+
+def dental_node(state: SupportState) -> dict:
+    """LangGraph node: gets a draft response from the dental specialist."""
+    ticket_id = state["ticket"]["id"]
+    message = _build_specialist_message(state)
+
+    log_exchange(ticket_id, "dental_specialist", "input", {"message": message})
+    result = dental_agent.invoke({"messages": [{"role": "user", "content": message}]})
+    output = result["messages"][-1].content
+    log_exchange(ticket_id, "dental_specialist", "output", {"answer": output})
+
+    return {"specialist_output": output}
+
+
+def benefits_node(state: SupportState) -> dict:
+    """LangGraph node: gets a draft response from the benefits specialist."""
+    ticket_id = state["ticket"]["id"]
+    message = _build_specialist_message(state)
+
+    log_exchange(ticket_id, "benefits_specialist", "input", {"message": message})
+    result = benefits_agent.invoke({"messages": [{"role": "user", "content": message}]})
+    output = result["messages"][-1].content
+    log_exchange(ticket_id, "benefits_specialist", "output", {"answer": output})
+
+    return {"specialist_output": output}
+
+
+def critic_node(state: SupportState) -> dict:
+    """LangGraph node: audits the specialist's draft output for groundedness, safety, and completeness."""
+    ticket_id = state["ticket"]["id"]
+    question = state["ticket"]["question"]
+    policy = state.get("policy") or "(none provided)"
+    draft = state["specialist_output"]
+
+    # Deterministic guard: never let the raw INSUFFICIENT_CONTEXT sentinel
+    # reach the employee -- observed to inconsistently PASS this instead of
+    # catching it when left up to the critic LLM's judgment (see
+    # measure_approval_rate.py ticket 1d865ac3). On the first occurrence,
+    # give the specialist one retry with coaching feedback to write a
+    # graceful "here's what I know, here's what to do next" answer instead
+    # of a blank refusal -- only skip the critic LLM and escalate
+    # immediately if it's STILL INSUFFICIENT_CONTEXT after that retry.
+    if draft and draft.strip() == "INSUFFICIENT_CONTEXT":
+        if state["retry_count"] == 0:
+            updates = {
+                "critic_status": "RETRY",
+                "critic_feedback": (
+                    "Don't just say INSUFFICIENT_CONTEXT. Explain what you do know from "
+                    "the available policy context, clearly state what information is "
+                    "missing, and advise the employee to contact HR or benefits support "
+                    "for the missing details."
+                ),
+                "retry_count": state["retry_count"] + 1,
+            }
+        else:
+            updates = {
+                "critic_status": "ESCALATE",
+                "critic_feedback": "Specialist could not answer from the available policy context, even after a retry.",
+            }
+        log_exchange(ticket_id, "critic", "decision", {
+            "critic_status": updates["critic_status"],
+            "critic_feedback": updates["critic_feedback"],
+            "retry_count": updates.get("retry_count", state["retry_count"]),
+        })
+        return updates
+
+    audit_input = (
+        f"Employee question: {question}\n\n"
+        f"Policy context: {policy}\n\n"
+        f"Specialist draft output: {draft}"
+    )
+
+    log_exchange(ticket_id, "critic", "input", {"audit_input": audit_input})
+
+    # DeepSeek's json_mode doesn't always return clean, parseable JSON --
+    # never let a parsing hiccup crash the request. Fail safe: escalate to
+    # a human instead, and log the raw parse error so it's still visible.
+    try:
+        verdict = critic_llm.invoke([
+            {"role": "system", "content": CRITIC_PROMPT},
+            {"role": "user", "content": audit_input},
+        ])
+    except OutputParserException as e:
+        updates = {
+            "critic_status": "ESCALATE",
+            "critic_feedback": "Critic response could not be parsed as valid JSON; escalating for safety.",
+        }
+        log_exchange(ticket_id, "critic", "decision", {
+            "critic_status": updates["critic_status"],
+            "critic_feedback": updates["critic_feedback"],
+            "retry_count": state["retry_count"],
+            "parse_error": str(e),
+        })
+        return updates
+
+    updates = {
+        "critic_status": verdict.decision,
+        "critic_feedback": verdict.critic_feedback or verdict.reasoning,
+    }
+
+    if verdict.decision == "RETRY":
+        updates["retry_count"] = state["retry_count"] + 1
+
+    log_exchange(ticket_id, "critic", "decision", {
+        "critic_status": updates["critic_status"],
+        "critic_feedback": updates["critic_feedback"],
+        "retry_count": updates.get("retry_count", state["retry_count"]),
+    })
+
+    return updates
