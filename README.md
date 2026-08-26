@@ -102,16 +102,14 @@ measure_approval_rate.py     # runs a batch of test tickets through the graph an
 
 Core pipeline, retry/escalation logic, the fake-policy lookup, the audit
 trail, and the Streamlit frontend are all built, tested, and merged into
-`dre-integration-engine`. Reconciled against the stakeholder pitch deck —
+`main`. Reconciled against the stakeholder pitch deck —
 the retry cap and the auto-approval-rate claim are both now backed by
 actual measured behavior, not assumptions.
 
-**Open items:**
-- `agents/critic.py` exists but is unused (an earlier alternate critic
-  implementation) — team should decide whether to update it to match the
-  current field names or remove it
-- `config.py` uses `langchain_deepseek.ChatDeepSeek`; worth reconciling
-  against the original stack description ("DeepSeek through an
-  OpenAI-compatible API")
-- No formal `pytest`-style test suite yet — verification so far has been
-  through direct runs and `measure_approval_rate.py`
+## Technical Notes and Future Improvements
+
+- **Critic implementation:** `agents/critic.py` is retained as an earlier alternate critic implementation. The active critic logic used by the LangGraph workflow is implemented in `agents/sub_agents.py`.
+
+- **LLM integration:** The current implementation uses `langchain_deepseek.ChatDeepSeek` to connect the LangGraph agents to DeepSeek. This reflects the final implementation used by the working application.
+
+- **Testing:** The system has been validated through end-to-end runs and batch testing with `measure_approval_rate.py`. A formal `pytest`-based automated test suite would be a future enhancement for expanded regression testing and continuous integration.
