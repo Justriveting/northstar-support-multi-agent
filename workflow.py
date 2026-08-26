@@ -3,16 +3,19 @@ from langgraph.graph import StateGraph, START, END
 from agents.orchestrator import orchestrator_node
 from agents.sub_agents import billing_node, dental_node, benefits_node, critic_node
 from graph_state import SupportState
+from logger import log_exchange
 from routing import route_after_orchestrator, route_after_critic
 
 
 def finalize_node(state: SupportState) -> dict:
     """Terminal node: promotes the approved draft to the final response."""
+    log_exchange(state["ticket"]["id"], "finalize", "output", {"final_response": state["specialist_output"]})
     return {"final_response": state["specialist_output"]}
 
 
 def human_review_node(state: SupportState) -> dict:
     """Terminal node: marks the ticket for human review; no automated final response is produced."""
+    log_exchange(state["ticket"]["id"], "human_review", "output", {"human_review": True})
     return {"human_review": True}
 
 

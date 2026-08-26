@@ -2,7 +2,7 @@ from typing import Optional, TypedDict
 
 
 class Ticket(TypedDict):
-    id: Optional[int]
+    id: Optional[str]
     customer_name: str
     question: str
     additional_info: str

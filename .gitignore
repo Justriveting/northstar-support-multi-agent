@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Northstar exchange log (runtime audit trail, not source)
+logs/
