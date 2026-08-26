@@ -102,17 +102,34 @@ def critic_node(state: SupportState) -> dict:
     draft = state["specialist_output"]
 
     # Deterministic guard: never let the raw INSUFFICIENT_CONTEXT sentinel
-    # reach the employee. Escalate immediately instead of leaving it up to
-    # the critic LLM's judgment -- observed to inconsistently PASS this
-    # instead of catching it (see measure_approval_rate.py ticket 1d865ac3).
+    # reach the employee -- observed to inconsistently PASS this instead of
+    # catching it when left up to the critic LLM's judgment (see
+    # measure_approval_rate.py ticket 1d865ac3). On the first occurrence,
+    # give the specialist one retry with coaching feedback to write a
+    # graceful "here's what I know, here's what to do next" answer instead
+    # of a blank refusal -- only skip the critic LLM and escalate
+    # immediately if it's STILL INSUFFICIENT_CONTEXT after that retry.
     if draft and draft.strip() == "INSUFFICIENT_CONTEXT":
-        updates = {
-            "critic_status": "ESCALATE",
-            "critic_feedback": "Specialist could not answer from the available policy context.",
-        }
+        if state["retry_count"] == 0:
+            updates = {
+                "critic_status": "RETRY",
+                "critic_feedback": (
+                    "Don't just say INSUFFICIENT_CONTEXT. Explain what you do know from "
+                    "the available policy context, clearly state what information is "
+                    "missing, and advise the employee to contact HR or benefits support "
+                    "for the missing details."
+                ),
+                "retry_count": state["retry_count"] + 1,
+            }
+        else:
+            updates = {
+                "critic_status": "ESCALATE",
+                "critic_feedback": "Specialist could not answer from the available policy context, even after a retry.",
+            }
         log_exchange(ticket_id, "critic", "decision", {
-            **updates,
-            "retry_count": state["retry_count"],
+            "critic_status": updates["critic_status"],
+            "critic_feedback": updates["critic_feedback"],
+            "retry_count": updates.get("retry_count", state["retry_count"]),
         })
         return updates
 
