@@ -84,6 +84,16 @@ measure_approval_rate.py     # runs a batch of test tickets through the graph an
                              # PASS/ESCALATE outcomes -- used to back pitch-deck claims with real data
 ```
 
+## Technologies
+
+- Python
+- LangGraph / StateGraph
+- LangChain
+- DeepSeek
+- Streamlit
+- Git & GitHub
+
+
 ## What's been tested
 
 - Full end-to-end runs through the real compiled graph with real API calls
@@ -111,9 +121,25 @@ actual measured behavior, not assumptions.
 | Team Member | Role | Key Contributions |
 |---|---|---|
 | Tayo Arogundade | Orchestrator Engineer / Project Coordination | Developed and tested orchestrator routing logic, helped define the shared-state workflow and agent handoffs, coordinated team integration, validated end-to-end routing and human-review escalation, and contributed business framing and project documentation. |
-| Drequan | Integration Engineer | Built and integrated the LangGraph workflow, retry and critic logic, Streamlit interface, audit trail, and testing/measurement utilities; identified and resolved integration issues during end-to-end testing. |
-| Kay | Prompt Engineer | Developed and refined prompts used by the multi-agent workflow, including routing and specialist-agent behavior. |
-| Lucy | Critic / QA Engineer | Contributed critic/quality-review work and supported validation of agent responses and workflow behavior. |
+| Drequan Walker | Integration Engineer | Built and integrated the LangGraph workflow, retry and critic logic, Streamlit interface, audit trail, and testing/measurement utilities; identified and resolved integration issues during end-to-end testing. |
+| Kay Richardson | Prompt Engineer | Developed and refined prompts used by the multi-agent workflow, including routing and specialist-agent behavior. |
+| Lucy Edosomwan | Critic / QA Engineer | Contributed critic/quality-review work and supported validation of agent responses and workflow behavior. |
+
+## Individual Contribution — Tayo Arogundade
+
+As the Orchestrator Engineer / Project Coordinator, I focused on coordinating how the individual components of Northstar worked together as one system.
+
+My contributions included:
+
+- Developed and tested orchestrator routing logic for incoming customer support tickets.
+- Helped define the shared-state workflow and agent handoffs.
+- Coordinated team integration across the multi-agent workflow.
+- Validated end-to-end routing and human-review escalation.
+- Contributed to business framing and project documentation.
+- Supported integration alignment, testing, and final project coordination.
+
+This role combined technical orchestration, workflow design, business problem-solving, and cross-functional project coordination.
+
 ## Technical Notes and Future Improvements
 
 - **Critic implementation:** `agents/critic.py` is retained as an earlier alternate critic implementation. The active critic logic used by the LangGraph workflow is implemented in `agents/sub_agents.py`.
